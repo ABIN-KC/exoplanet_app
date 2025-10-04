@@ -9,3 +9,4 @@ lightgbm==4.6.0
 imbalanced-learn==0.14.0
 threadpoolctl==3.6.0
 gunicorn==21.2.0
+catboost
