@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "C:\\Users\\abink\\OneDrive\\Desktop\\exoplanet_app\\templates",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

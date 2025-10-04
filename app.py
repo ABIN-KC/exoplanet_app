@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import joblib
 
 app = Flask(__name__)
 model = joblib.load("exoplanet_model.pkl")  # load your trained model
+CORS(app) 
 
 @app.route('/')
 def home():
