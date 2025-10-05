@@ -1,12 +1,15 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import joblib
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-# Load your model
-model = joblib.load("exoplanet_model.pkl")
+# Ensure the model loads correctly relative to this file
+BASE_DIR = os.path.dirname(__file__)
+model_path = os.path.join(BASE_DIR, "exoplanet_model.pkl")
+model = joblib.load(model_path)
 
 @app.route('/')
 def home():
