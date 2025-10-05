@@ -1,118 +1,235 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html> 
+<html lang="en">
 <head>
-  <title>Exoplanet Detector</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-</head>
-<body class="bg-dark text-light">
-  <div class="container text-center mt-5">
-    <h1>Exoplanet Detection AI</h1>
-    <p>Enter the parameters below:</p>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exoplanet Detector</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Splash Screen */
+  #splash {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(to bottom, #1e0e4b, #4b1073, #000000); /* same as main page */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    color: white;
+    font-size: 3rem;
+    font-weight: bold;
+    opacity: 1;
+    transition: opacity 1.5s ease;
+  }
 
-    <div class="card bg-secondary p-4 mx-auto" style="max-width: 600px;">
-      <div id="inputs"></div>
-      <button id="predict-btn" class="btn btn-primary w-100 mt-3">Predict</button>
-      <h4 class="mt-3" id="output"></h4>
-    </div>
+  /* Stars and animations */
+  @keyframes twinkle { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+  @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes pulse-star { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  @keyframes pulse-planet { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .star { animation: twinkle 2s infinite alternate; }
+  .central-star { animation: pulse-star 3s infinite; box-shadow: 0 0 30px rgba(255, 255, 150, 0.6), 0 0 60px rgba(255, 255, 150, 0.3); }
+
+  .planet-orbit {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 320px; height: 320px;
+    margin: -160px 0 0 -160px;
+    border: 1px dashed rgba(59, 130, 246, 0.3);
+    border-radius: 50%;
+    animation: rotate 15s linear infinite;
+  }
+
+  .planet {
+    position: absolute;
+    top: 50%; left: 50%;
+    margin-left: -12px;
+    margin-top: -160px;
+    width: 24px; height: 24px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    animation: pulse-planet 2s infinite;
+  }
+
+  .moon-orbit {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 60px; height: 60px;
+    margin-left: -30px; margin-top: -30px;
+    border-radius: 50%;
+    animation: rotate 5s linear infinite reverse;
+  }
+
+  .moon {
+    position: absolute;
+    top: 50%; left: 50%;
+    margin-left: -6px;
+    margin-top: -30px;
+    width: 12px; height: 12px;
+    background-color: #ccc;
+    border-radius: 50%;
+  }
+
+  .flash-output { animation: flash 1s infinite; }
+  #stars-container, .central-star, .planet-orbit, .planet, .moon-orbit, .moon {
+    pointer-events: none;
+  }
+
+  /* Planet fill transition */
+  #planet-fill {
+    transition: background 0.5s ease;
+  }
+
+  /* Hide space elements initially */
+  #space-elements {
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+</style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden bg-gradient-to-b from-indigo-900 via-purple-900 to-black text-white">
+
+<!-- Splash Screen -->
+<div id="splash">NASA SPACEAPPS</div>
+
+<!-- Stars, Sun, Planet (hidden initially) -->
+<div class="fixed inset-0 overflow-hidden" id="space-elements">
+  <div id="stars-container" class="absolute inset-0"></div>
+
+  <!-- Central Star -->
+  <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+    <div class="w-16 h-16 bg-yellow-300 rounded-full central-star"></div>
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // Model feature names
-      const featureNames = [
-        "koi_score",
-        "koi_fpflag_nt",
-        "koi_fpflag_ss",
-        "koi_fpflag_co",
-        "koi_fpflag_ec",
-        "koi_period",
-        "koi_time0bk",
-        "koi_impact",
-        "koi_duration",
-        "koi_depth",
-        "koi_prad",
-        "koi_teq",
-        "koi_insol",
-        "koi_model_snr",
-        "koi_steff",
-        "koi_slogg",
-        "koi_srad",
-        "koi_kepmag"
-      ];
+  <!-- Planet orbit -->
+  <div class="planet-orbit">
+    <div class="planet">
+      <div class="moon-orbit">
+        <div class="moon"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-      // Friendly labels for users
-      const friendlyLabels = [
-        "Disposition Score",
-        "Not Transit-Like False Positive Flag",
-        "Stellar Eclipse False Positive Flag",
-        "Centroid Offset False Positive Flag",
-        "Ephemeris Match Indicates Contamination False Positive Flag",
-        "Orbital Period [days]",
-        "Transit Epoch [BKJD]",
-        "Impact Parameter",
-        "Transit Duration [hrs]",
-        "Transit Depth [ppm]",
-        "Planetary Radius [Earth radii]",
-        "Equilibrium Temperature [K]",
-        "Insolation Flux [Earth flux]",
-        "Transit Signal-to-Noise",
-        "Stellar Effective Temperature [K]",
-        "Stellar Surface Gravity [log10(cm/s**2)]",
-        "Stellar Radius [Solar radii]",
-        "Kepler-band [mag]"
-      ];
+<!-- Main Container -->
+<div id="main-content" class="relative z-10 container mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-8 opacity-0 transition-opacity duration-1000">
+  <!-- Input Form -->
+  <div class="bg-black/20 backdrop-blur border border-blue-400/30 rounded-lg p-6 space-y-4">
+    <h1 class="text-2xl font-bold text-center mb-4">Exoplanet Detection AI</h1>
+    <p class="text-blue-200 text-center mb-4">Enter the 18 parameters below:</p>
+    <div id="inputs" class="grid grid-cols-2 gap-4 text-sm"></div>
+    <button id="predict-btn" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 mt-4">Predict</button>
+  </div>
 
-      // Container div for inputs
-      const inputsDiv = document.getElementById("inputs");
+  <!-- Output Section -->
+  <div class="bg-black/20 backdrop-blur border border-blue-400/30 rounded-lg p-6 flex flex-col items-center justify-center">
+    <h2 class="text-xl font-bold mb-4">Prediction</h2>
+    <div id="output-container" class="flex flex-col items-center">
+      <div id="output" class="text-3xl font-extrabold flash-output mb-4"></div>
+      <!-- Planet fill -->
+      <div id="planet-fill" class="w-24 h-24 rounded-full bg-green-400"></div>
+    </div>
+  </div>
+</div>
 
-      // Create 18 inputs dynamically
-      featureNames.forEach((name, idx) => {
-        const label = document.createElement("label");
-        label.innerText = friendlyLabels[idx];
-        label.className = "form-label mt-2 text-start";
-        label.style.display = "block";
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const splash = document.getElementById("splash");
+  const mainContent = document.getElementById("main-content");
+  const spaceElements = document.getElementById("space-elements");
 
-        const input = document.createElement("input");
-        input.type = "number";
-        input.className = "form-control";
-        input.id = name;
-        input.placeholder = friendlyLabels[idx];
+  // Splash fade and reveal main content + space elements
+  setTimeout(() => {
+    splash.style.opacity = "0";
+    setTimeout(() => {
+      splash.style.display = "none";
+      mainContent.style.opacity = "1";
+      spaceElements.style.opacity = "1";
+    }, 1500);
+  }, 2000);
 
-        inputsDiv.appendChild(label);
-        inputsDiv.appendChild(input);
-      });
+  // Generate input fields
+  const featureNames = [
+    "koi_score","koi_fpflag_nt","koi_fpflag_ss","koi_fpflag_co","koi_fpflag_ec",
+    "koi_period","koi_time0bk","koi_impact","koi_duration","koi_depth",
+    "koi_prad","koi_teq","koi_insol","koi_model_snr","koi_steff",
+    "koi_slogg","koi_srad","koi_kepmag"
+  ];
+  const friendlyLabels = [
+    "Disposition Score","Not Transit-Like False Positive Flag","Stellar Eclipse False Positive Flag",
+    "Centroid Offset False Positive Flag","Ephemeris Match Indicates Contamination False Positive Flag",
+    "Orbital Period [days]","Transit Epoch [BKJD]","Impact Parameter","Transit Duration [hrs]",
+    "Transit Depth [ppm]","Planetary Radius [Earth radii]","Equilibrium Temperature [K]",
+    "Insolation Flux [Earth flux]","Transit Signal-to-Noise","Stellar Effective Temperature [K]",
+    "Stellar Surface Gravity [log10(cm/s**2)]","Stellar Radius [Solar radii]","Kepler-band [mag]"
+  ];
+  const inputsDiv = document.getElementById("inputs");
+  featureNames.forEach((name, idx) => {
+    const div = document.createElement("div");
+    div.className = "flex flex-col";
+    const label = document.createElement("label");
+    label.innerText = friendlyLabels[idx];
+    label.className = "mb-1";
+    const input = document.createElement("input");
+    input.type = "number";
+    input.id = name;
+    input.placeholder = friendlyLabels[idx];
+    input.className = "p-2 rounded bg-gray-900 text-white border border-gray-600 focus:border-blue-400 focus:outline-none";
+    div.appendChild(label); div.appendChild(input); inputsDiv.appendChild(div);
+  });
 
-      // Predict button click
-      document.getElementById("predict-btn").addEventListener("click", async () => {
-        const inputData = {};
-        featureNames.forEach(name => {
-          const value = parseFloat(document.getElementById(name).value);
-          inputData[name] = isNaN(value) ? 0 : value; // default 0 if empty
-        });
-
-        try {
-          const response = await fetch("https://exoplanet-zotp.onrender.com/predict", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(inputData)
-          });
-
-          const data = await response.json();
-          const output = document.getElementById("output");
-          if (data.prediction === "1") {
-            output.innerText = "Exoplanet";
-            output.style.color = "lime";
-          } else {
-            output.innerText = "Not Exoplanet";
-            output.style.color = "red";
-          }
-        } catch (err) {
-          document.getElementById("output").innerText = "Error connecting to API";
-          document.getElementById("output").style.color = "yellow";
-          console.error(err);
-        }
-      });
+  // Predict button
+  document.getElementById("predict-btn").addEventListener("click", async () => {
+    const inputData = {};
+    featureNames.forEach(name => {
+      const value = parseFloat(document.getElementById(name).value);
+      inputData[name] = isNaN(value) ? 0 : value;
     });
-  </script>
+    try {
+      const response = await fetch("http://127.0.0.1:5000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(inputData)
+      });
+      const data = await response.json();
+      const output = document.getElementById("output");
+      const planetFill = document.getElementById("planet-fill");
+
+      if (data.prediction === "1") {
+        output.innerText = "Exoplanet";
+        output.style.color = "#7CFC00";
+      } else {
+        output.innerText = "Not Exoplanet";
+        output.style.color = "#FF4500";
+      }
+
+      const fillPercent = Math.round(data.confidence * 100);
+      planetFill.style.background = `conic-gradient(#7CFC00 ${fillPercent}%, transparent ${fillPercent}%)`;
+
+    } catch (err) {
+      const output = document.getElementById("output");
+      output.innerText = "Error connecting to API";
+      output.style.color = "yellow";
+      console.error(err);
+    }
+  });
+
+  // Generate stars
+  const starsContainer = document.getElementById('stars-container');
+  for (let i = 0; i < 100; i++) {
+    const star = document.createElement('div');
+    star.className = 'absolute bg-white rounded-full star';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.width = (Math.random() * 2 + 1) + 'px';
+    star.style.height = (Math.random() * 2 + 1) + 'px';
+    star.style.animationDelay = Math.random() * 2 + 's';
+    star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    starsContainer.appendChild(star);
+  }
+});
+</script>
 </body>
 </html>

@@ -1,22 +1,25 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import joblib
 
 app = Flask(__name__)
-model = joblib.load("exoplanet_model.pkl")  # load your trained model
-CORS(app) 
+CORS(app)
+
+# Load your model
+model = joblib.load("exoplanet_model.pkl")
 
 @app.route('/')
 def home():
-    return "Exoplanet AI API is running!"
+    return render_template("index.html")
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    data = request.get_json()  # get JSON input
-    features = [data[f] for f in [
-        'input1', 'input2', 'input3', 'input4', 'input5', 'input6',
-        'input7', 'input8', 'input9', 'input10', 'input11', 'input12',
-        'input13', 'input14', 'input15', 'input16', 'input17', 'input18'
+    data = request.get_json()
+    features = [data.get(f, 0) for f in [
+        "koi_score","koi_fpflag_nt","koi_fpflag_ss","koi_fpflag_co",
+        "koi_fpflag_ec","koi_period","koi_time0bk","koi_impact",
+        "koi_duration","koi_depth","koi_prad","koi_teq","koi_insol",
+        "koi_model_snr","koi_steff","koi_slogg","koi_srad","koi_kepmag"
     ]]
     result = model.predict([features])[0]
     return jsonify({"prediction": str(result)})
